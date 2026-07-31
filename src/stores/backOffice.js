@@ -28,7 +28,7 @@ export const useBackOfficeStore = defineStore('backOffice', {
   },
   actions: {
     async initialise() {
-      if (!supabase) { this.authError = 'Supabase configuration is missing.'; this.ready = true; return }
+      if (!supabase) { this.authError = 'Supabase configuration is missing or invalid. Check the Vercel VITE_SUPABASE_URL setting.'; this.ready = true; return }
       const { data } = await supabase.auth.getSession()
       this.session = data.session
       this.ready = true
