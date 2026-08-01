@@ -30,7 +30,7 @@ export const useBackOfficeStore = defineStore('backOffice', {
       return all
     }, {})),
     orderTotal: state => state.orders.reduce((total, order) => total + Number(order.total), 0),
-    recordedReferences: state => state.orders.filter(order => order.mpesa_payments?.[0]?.mpesa_reference).length
+    recordedReferences: state => state.orders.filter(order => order.mpesa_payment?.mpesa_reference).length
   },
   actions: {
     async initialise() {
@@ -59,7 +59,11 @@ export const useBackOfficeStore = defineStore('backOffice', {
       this.loading = false
       const failed = [orders, products, methods].find(result => result.error)
       if (failed) { this.dataError = errorMessage(failed.error); return }
-      this.orders = orders.data || []; this.products = products.data || []; this.deliveryMethods = methods.data || []
+      this.orders = (orders.data || []).map(order => ({
+        ...order,
+        mpesa_payment: Array.isArray(order.mpesa_payments) ? order.mpesa_payments[0] : order.mpesa_payments
+      }))
+      this.products = products.data || []; this.deliveryMethods = methods.data || []
     },
     openOrder(order) { this.selectedOrder = order; this.statusDraft = order.status; this.activeView = 'order-detail' },
     navigate(view) { this.activeView = view; this.selectedOrder = null },
