@@ -12,7 +12,10 @@ const productImageFiles = {
   'sunset-nairobi': 'vanilla.jpeg',
   'savannah-dusk': 'bubblegum.jpeg',
   'loomed-horizon': 'caramel.jpeg',
-  'royal-triptych': 'blueberry.jpeg'
+  'royal-triptych': 'blueberry.jpeg',
+  'scribe-journal': 'img7.jpeg',
+  'sculpted-vase': 'img11.jpeg',
+  'beaded-choker': 'img13.jpeg'
 }
 
 export const productImageUrl = productId => {
