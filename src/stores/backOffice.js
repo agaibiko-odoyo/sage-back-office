@@ -6,7 +6,7 @@ const errorMessage = error => error?.message || 'Something went wrong. Please tr
 export const useBackOfficeStore = defineStore('backOffice', {
   state: () => ({
     ready: false, session: null, authError: '', dataError: '', loading: false,
-    activeView: 'orders', selectedOrder: null, query: '', status: 'all',
+    activeView: 'orders', selectedOrder: null, query: '', searchDraft: '', status: 'all',
     orders: [], products: [], deliveryMethods: [], statusDraft: '', credentials: { email: '', password: '' }
   }),
   getters: {
@@ -66,6 +66,8 @@ export const useBackOfficeStore = defineStore('backOffice', {
       this.products = products.data || []; this.deliveryMethods = methods.data || []
     },
     openOrder(order) { this.selectedOrder = order; this.statusDraft = order.status; this.activeView = 'order-detail' },
+    applySearch() { this.query = this.searchDraft.trim() },
+    clearSearch() { this.query = ''; this.searchDraft = ''; this.status = 'all' },
     navigate(view) { this.activeView = view; this.selectedOrder = null },
     async updateStatus() {
       if (!this.selectedOrder || !this.statusDraft || this.statusDraft === this.selectedOrder.status) return
