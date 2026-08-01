@@ -14,7 +14,13 @@ export const useBackOfficeStore = defineStore('backOffice', {
       const haystack = `${order.order_number} ${order.customer_name} ${order.customer_email || ''} ${order.customer_phone || ''}`.toLowerCase()
       return (!state.query || haystack.includes(state.query.toLowerCase())) && (state.status === 'all' || order.status === state.status)
     }),
-    statuses: state => [...new Set(state.orders.map(order => order.status))],
+    statuses: () => [
+      'awaiting_confirmation',
+      'order_confirmed',
+      'departed_store',
+      'out_for_delivery',
+      'delivered_successfully'
+    ],
     customers: state => Object.values(state.orders.reduce((all, order) => {
       const key = order.customer_email || order.customer_phone || order.customer_name
       if (!all[key]) all[key] = { name: order.customer_name, email: order.customer_email, phone: order.customer_phone, orders: 0, spend: 0, lastOrder: order.created_at, city: order.city }
