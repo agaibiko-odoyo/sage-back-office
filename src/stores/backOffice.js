@@ -7,7 +7,7 @@ export const useBackOfficeStore = defineStore('backOffice', {
   state: () => ({
     ready: false, session: null, authError: '', dataError: '', loading: false,
     activeView: 'orders', selectedOrder: null, query: '', status: 'all',
-    orders: [], products: [], deliveryMethods: [], statusDraft: '', paymentReferenceDraft: '', credentials: { email: '', password: '' }
+    orders: [], products: [], deliveryMethods: [], statusDraft: '', credentials: { email: '', password: '' }
   }),
   getters: {
     filteredOrders: state => state.orders.filter(order => {
@@ -30,7 +30,7 @@ export const useBackOfficeStore = defineStore('backOffice', {
       return all
     }, {})),
     orderTotal: state => state.orders.reduce((total, order) => total + Number(order.total), 0),
-    confirmedPayments: state => state.orders.filter(order => order.mpesa_payments?.[0]?.mpesa_reference).length
+    recordedReferences: state => state.orders.filter(order => order.mpesa_payments?.[0]?.mpesa_reference).length
   },
   actions: {
     async initialise() {
@@ -61,7 +61,7 @@ export const useBackOfficeStore = defineStore('backOffice', {
       if (failed) { this.dataError = errorMessage(failed.error); return }
       this.orders = orders.data || []; this.products = products.data || []; this.deliveryMethods = methods.data || []
     },
-    openOrder(order) { this.selectedOrder = order; this.statusDraft = order.status; this.paymentReferenceDraft = order.mpesa_payments?.[0]?.mpesa_reference || ''; this.activeView = 'order-detail' },
+    openOrder(order) { this.selectedOrder = order; this.statusDraft = order.status; this.activeView = 'order-detail' },
     navigate(view) { this.activeView = view; this.selectedOrder = null },
     async updateStatus() {
       if (!this.selectedOrder || !this.statusDraft || this.statusDraft === this.selectedOrder.status) return
@@ -77,18 +77,6 @@ export const useBackOfficeStore = defineStore('backOffice', {
       const { error } = await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id)
       if (error) { this.dataError = errorMessage(error); return }
       product.is_active = !product.is_active
-    },
-    async savePaymentReference(confirmPayment = false) {
-      const payment = this.selectedOrder?.mpesa_payments?.[0]
-      if (!payment) { this.dataError = 'This order does not have an M-Pesa payment record to update.'; return }
-      this.loading = true
-      const changes = { mpesa_reference: this.paymentReferenceDraft.trim() || null }
-      if (confirmPayment) changes.status = 'paid'
-      const { data, error } = await supabase.from('mpesa_payments').update(changes).eq('id', payment.id).select('mpesa_reference, status').single()
-      this.loading = false
-      if (error) { this.dataError = errorMessage(error); return }
-      payment.mpesa_reference = data.mpesa_reference
-      payment.status = data.status
     }
   }
 })
