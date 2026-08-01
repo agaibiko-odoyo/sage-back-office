@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useBackOfficeStore } from './stores/backOffice'
 import logo from './assets/logo.jpeg'
 import { productImageUrl } from './lib/supabase'
 const store = useBackOfficeStore()
+const passwordVisible = ref(false)
 onMounted(() => store.initialise())
 const nav = [{ id: 'orders', label: 'Orders', icon: 'receipt_long' }, { id: 'customers', label: 'Customers', icon: 'group' }, { id: 'products', label: 'Products', icon: 'inventory_2' }, { id: 'delivery-methods', label: 'Delivery methods', icon: 'local_shipping' }]
 const title = computed(() => store.activeView === 'order-detail' ? `Order ${store.selectedOrder?.order_number || ''}` : nav.find(item => item.id === store.activeView)?.label || 'Operations')
@@ -15,7 +16,7 @@ const statusClass = value => value === 'paid' || value === 'delivered' ? 'green'
 
 <template>
   <div v-if="!store.ready" class="loading-screen"><img class="loading-logo" :src="logo" alt="Sage Candle KE"></div>
-  <section v-else-if="!store.session" class="auth-screen"><form class="auth-card" @submit.prevent="store.signIn"><img class="auth-logo" :src="logo" alt="Sage Candle KE"><p class="eyebrow">Sage Candle KE</p><h1>Operations Console</h1><p>Sign in with an authorised back-office account.</p><label>Email<input v-model="store.credentials.email" type="email" autocomplete="email" required></label><label>Password<input v-model="store.credentials.password" type="password" autocomplete="current-password" required></label><p v-if="store.authError" class="form-error">{{ store.authError }}</p><button class="primary full" :disabled="store.loading">{{ store.loading ? 'Signing in…' : 'Sign in' }}</button></form></section>
+  <section v-else-if="!store.session" class="auth-screen"><form class="auth-card" @submit.prevent="store.signIn"><img class="auth-logo" :src="logo" alt="Sage Candle KE"><p class="eyebrow">Sage Candle KE</p><h1>Operations Console</h1><p>Sign in with an authorised back-office account.</p><label>Email<input v-model="store.credentials.email" type="email" autocomplete="email" required></label><label>Password<div class="password-input"><input v-model="store.credentials.password" :type="passwordVisible ? 'text' : 'password'" autocomplete="current-password" required><button type="button" class="password-toggle material-symbols-outlined" :aria-label="passwordVisible ? 'Hide password' : 'Show password'" :title="passwordVisible ? 'Hide password' : 'Show password'" @click="passwordVisible = !passwordVisible">{{ passwordVisible ? 'visibility_off' : 'visibility' }}</button></div></label><p v-if="store.authError" class="form-error">{{ store.authError }}</p><button class="primary full" :disabled="store.loading">{{ store.loading ? 'Signing in…' : 'Sign in' }}</button></form></section>
   <div v-else class="app-shell">
     <aside class="sidebar"><div class="brand"><img class="brand-logo" :src="logo" alt="Sage Candle KE"><div><h1>Sage Candle</h1><p>Operations Console</p></div></div><nav><button v-for="item in nav" :key="item.id" :class="{ active: store.activeView === item.id || (item.id === 'orders' && store.activeView === 'order-detail') }" @click="store.navigate(item.id)"><span class="material-symbols-outlined">{{ item.icon }}</span>{{ item.label }}</button></nav><div class="profile"><div class="avatar material-symbols-outlined">admin_panel_settings</div><div><strong>{{ store.session.user.email }}</strong><small>Authenticated user</small></div><button class="icon material-symbols-outlined" title="Sign out" @click="store.signOut">logout</button></div></aside>
     <header><div class="page-title"><h2>{{ title }}</h2></div><div class="header-actions"><button class="outline" :disabled="store.loading" @click="store.loadData"><span class="material-symbols-outlined">refresh</span>Refresh</button></div></header>
