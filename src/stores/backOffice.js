@@ -11,7 +11,7 @@ export const useBackOfficeStore = defineStore('backOffice', {
   }),
   getters: {
     filteredOrders: state => state.orders.filter(order => {
-      const haystack = `${order.order_number} ${order.customer_name} ${order.customer_email || ''} ${order.customer_phone || ''}`.toLowerCase()
+      const haystack = `${order.order_number} ${order.customer_name} ${order.customer_email || ''} ${order.customer_phone || ''} ${order.mpesa_payment?.mpesa_reference || ''}`.toLowerCase()
       return (!state.query || haystack.includes(state.query.toLowerCase())) && (state.status === 'all' || order.status === state.status)
     }),
     statuses: () => [
