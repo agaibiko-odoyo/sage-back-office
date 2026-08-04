@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { supabase } from '../lib/supabase'
+import { enablePush, pushSupported } from '../lib/push'
 
 const errorMessage = error => error?.message || 'Something went wrong. Please try again.'
 
@@ -7,7 +8,8 @@ export const useBackOfficeStore = defineStore('backOffice', {
   state: () => ({
     ready: false, session: null, authError: '', dataError: '', loading: false,
     activeView: 'orders', selectedOrder: null, query: '', searchDraft: '', status: 'all',
-    orders: [], products: [], deliveryMethods: [], statusDraft: '', credentials: { email: '', password: '' }
+    orders: [], products: [], deliveryMethods: [], statusDraft: '', credentials: { email: '', password: '' },
+    notificationMessage: '', notificationsEnabled: false
   }),
   getters: {
     filteredOrders: state => state.orders.filter(order => {
@@ -49,6 +51,15 @@ export const useBackOfficeStore = defineStore('backOffice', {
       if (error) this.authError = errorMessage(error)
     },
     async signOut() { await supabase.auth.signOut() },
+    async enableNotifications() {
+      this.notificationMessage = ''
+      if (!pushSupported()) { this.notificationMessage = 'This browser does not support push notifications.'; return }
+      try {
+        await enablePush()
+        this.notificationsEnabled = true
+        this.notificationMessage = 'Browser notifications are enabled for new orders.'
+      } catch (error) { this.notificationMessage = errorMessage(error) }
+    },
     async loadData() {
       this.loading = true; this.dataError = ''
       const [orders, products, methods] = await Promise.all([
@@ -72,12 +83,18 @@ export const useBackOfficeStore = defineStore('backOffice', {
     async updateStatus() {
       if (!this.selectedOrder || !this.statusDraft || this.statusDraft === this.selectedOrder.status) return
       this.loading = true
-      const { error } = await supabase.from('delivery_orders').update({ status: this.statusDraft }).eq('id', this.selectedOrder.id)
+      const { data: { session } } = await supabase.auth.getSession()
+      const result = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+        body: JSON.stringify({ orderId: this.selectedOrder.id, status: this.statusDraft })
+      })
       this.loading = false
-      if (error) { this.dataError = errorMessage(error); return }
-      this.selectedOrder.status = this.statusDraft
+      if (!result.ok) { this.dataError = (await result.json().catch(() => ({}))).error || 'Could not update the order status.'; return }
+      const { order } = await result.json()
+      this.selectedOrder.status = order.status
       const found = this.orders.find(order => order.id === this.selectedOrder.id)
-      if (found) found.status = this.statusDraft
+      if (found) found.status = order.status
     },
     async toggleProduct(product) {
       const { error } = await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id)
