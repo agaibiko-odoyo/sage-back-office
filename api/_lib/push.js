@@ -27,7 +27,7 @@ export async function sendPush(userIds, payload) {
   const { data: subscriptions, error } = await db.from('push_subscriptions').select('id, endpoint, p256dh, auth').in('user_id', recipients);
   if (error) {
     console.error('Could not load push subscriptions', error);
-    return { subscriptions: 0, accepted: 0, failed: 0, reason: 'Could not load saved subscriptions.' };
+    return { subscriptions: 0, accepted: 0, failed: 0, reason: `Could not load saved subscriptions (${error.code || error.message || 'database error'}).` };
   }
   if (!subscriptions?.length) {
     console.warn('Push notification skipped: no saved browser subscriptions for recipient.');
