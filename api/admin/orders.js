@@ -18,10 +18,15 @@ export default async function handler(request, response) {
   if (order.status === status) return response.status(200).json({ order });
   const { data: updated, error } = await db.from('delivery_orders').update({ status }).eq('id', orderId).select('id, order_number, user_id, status').single();
   if (error) return response.status(500).json({ error: 'Could not update the order status.' });
-  await sendPush([updated.user_id], {
-    title: `Order ${updated.order_number}`,
-    body: labels[status],
-    url: '/profile'
-  });
+  try {
+    await sendPush([updated.user_id], {
+      title: `Order ${updated.order_number}`,
+      body: labels[status],
+      url: '/profile'
+    });
+  } catch (error) {
+    // Fulfilment progress is authoritative even when push delivery is not.
+    console.error('Order status updated, but notification delivery failed', error?.message || error);
+  }
   return response.status(200).json({ order: updated });
 }
