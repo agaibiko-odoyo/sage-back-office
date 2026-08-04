@@ -14,6 +14,8 @@ export async function enablePush() {
   if (await Notification.requestPermission() !== 'granted') throw new Error('Notification permission was not granted.')
   await navigator.serviceWorker.register('/push-sw.js')
   const registration = await navigator.serviceWorker.ready
+  const existingSubscription = await registration.pushManager.getSubscription()
+  if (existingSubscription) await existingSubscription.unsubscribe()
   const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) })
   const result = await fetch('/api/notifications/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify(subscription) })
   if (!result.ok) throw new Error((await result.json().catch(() => ({}))).error || 'Could not enable notifications.')
