@@ -4,8 +4,13 @@ import { supabaseAdmin } from './auth.js';
 function configured() {
   const { VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
   if (!VAPID_SUBJECT || !VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return false;
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-  return true;
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    return true;
+  } catch (error) {
+    console.error('Push notifications are misconfigured', error?.message || error);
+    return false;
+  }
 }
 
 export async function sendPush(userIds, payload) {
