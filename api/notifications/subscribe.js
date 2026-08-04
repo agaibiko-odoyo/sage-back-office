@@ -2,9 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '../_lib/auth.js';
 
 function userScopedDb(accessToken) {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
+  return createClient(process.env.SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SECRET_KEY, {
     auth: { persistSession: false },
-    global: { headers: { Authorization: `Bearer ${accessToken}` } }
+    accessToken: async () => accessToken
   });
 }
 
