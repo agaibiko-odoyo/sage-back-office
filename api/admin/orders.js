@@ -7,29 +7,34 @@ const labels = {
 };
 
 export default async function handler(request, response) {
-  const admin = await requireAdmin(request, response);
-  if (!admin) return;
-  if (request.method !== 'PATCH') return response.status(405).json({ error: 'Method not allowed' });
-  const { orderId, status } = request.body || {};
-  if (!orderId || !statuses.has(status)) return response.status(400).json({ error: 'Invalid order status update.' });
-  const db = supabaseAdmin();
-  const { data: order, error: readError } = await db.from('delivery_orders').select('id, order_number, user_id, status').eq('id', orderId).single();
-  if (readError || !order) return response.status(404).json({ error: 'Order was not found.' });
-  if (order.status === status) return response.status(200).json({ order });
-  const { data: updated, error } = await db.from('delivery_orders').update({ status }).eq('id', orderId).select('id, order_number, user_id, status').single();
-  if (error) {
-    console.error('Could not update order status', { code: error.code, message: error.message, details: error.details });
-    return response.status(500).json({ error: `Could not update the order status (${error.code || 'database error'}).` });
-  }
   try {
-    await sendPush([updated.user_id], {
-      title: `Order ${updated.order_number}`,
-      body: labels[status],
-      url: '/profile'
-    });
+    const admin = await requireAdmin(request, response);
+    if (!admin) return;
+    if (request.method !== 'PATCH') return response.status(405).json({ error: 'Method not allowed' });
+    const { orderId, status } = request.body || {};
+    if (!orderId || !statuses.has(status)) return response.status(400).json({ error: 'Invalid order status update.' });
+    const db = supabaseAdmin();
+    const { data: order, error: readError } = await db.from('delivery_orders').select('id, order_number, user_id, status').eq('id', orderId).single();
+    if (readError || !order) return response.status(404).json({ error: 'Order was not found.' });
+    if (order.status === status) return response.status(200).json({ order });
+    const { data: updated, error } = await db.from('delivery_orders').update({ status }).eq('id', orderId).select('id, order_number, user_id, status').single();
+    if (error) {
+      console.error('Could not update order status', { code: error.code, message: error.message, details: error.details });
+      return response.status(500).json({ error: `Could not update the order status (${error.code || 'database error'}).` });
+    }
+    try {
+      await sendPush([updated.user_id], {
+        title: `Order ${updated.order_number}`,
+        body: labels[status],
+        url: '/profile'
+      });
+    } catch (error) {
+      // Fulfilment progress is authoritative even when push delivery is not.
+      console.error('Order status updated, but notification delivery failed', error?.message || error);
+    }
+    return response.status(200).json({ order: updated });
   } catch (error) {
-    // Fulfilment progress is authoritative even when push delivery is not.
-    console.error('Order status updated, but notification delivery failed', error?.message || error);
+    console.error('Admin order update handler failed', error);
+    return response.status(500).json({ error: error instanceof Error ? `Could not update the order status: ${error.message}` : 'Could not update the order status.' });
   }
-  return response.status(200).json({ order: updated });
 }
