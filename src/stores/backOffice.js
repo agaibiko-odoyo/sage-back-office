@@ -9,7 +9,7 @@ export const useBackOfficeStore = defineStore('backOffice', {
     ready: false, session: null, authError: '', dataError: '', loading: false,
     activeView: 'orders', selectedOrder: null, query: '', searchDraft: '', status: 'all',
     orders: [], products: [], deliveryMethods: [], statusDraft: '', credentials: { email: '', password: '' },
-    notificationMessage: '', notificationsEnabled: false, testingNotifications: false
+    notificationMessage: '', notificationsEnabled: false
   }),
   getters: {
     filteredOrders: state => state.orders.filter(order => {
@@ -59,18 +59,6 @@ export const useBackOfficeStore = defineStore('backOffice', {
         this.notificationsEnabled = true
         this.notificationMessage = 'Browser notifications are enabled for new orders.'
       } catch (error) { this.notificationMessage = errorMessage(error) }
-    },
-    async testNotifications() {
-      this.testingNotifications = true; this.notificationMessage = ''
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const response = await fetch('/api/notifications/test', { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token || ''}` } })
-        const result = await response.json().catch(() => ({}))
-        if (!response.ok) throw new Error(result.error || 'Could not send a test notification.')
-        const delivery = result.delivery
-        this.notificationMessage = delivery.accepted ? `Test accepted by the push provider for ${delivery.accepted} device${delivery.accepted === 1 ? '' : 's'}.` : `Test not sent: ${delivery.reason || 'no active device subscription found.'}`
-      } catch (error) { this.notificationMessage = errorMessage(error) }
-      finally { this.testingNotifications = false }
     },
     async loadData() {
       this.loading = true; this.dataError = ''
